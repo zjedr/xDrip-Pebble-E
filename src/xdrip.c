@@ -100,6 +100,8 @@ static char last_battlevel[4];
 static uint32_t current_cgm_time = 0;
 static uint32_t current_app_time = 0;
 static char current_bg_delta[14];
+static char high_bg[6] = "7.5";
+static char low_bg[6] = "3.8";
 //static int converted_bgDelta = 0;
 
 // global BG snooze timer
@@ -797,6 +799,14 @@ void inbox_dropped_handler_cgm(AppMessageResult appmsg_indrop_error, void *conte
 		
 } // end inbox_dropped_handler_cgm
 
+
+
+
+
+
+
+
+
 void outbox_failed_handler_cgm(DictionaryIterator *failed, AppMessageResult appmsg_outfail_error, void *context) {
 	// outgoing appmessage send failed to deliver to Pebble
 	
@@ -1171,19 +1181,19 @@ static void load_bg() {
 			//APP_LOG(APP_LOG_LEVEL_DEBUG, "LOAD BG, SET TO BG: %s ", last_bg);
       #ifdef PBL_COLOR
         if ( strncmp(last_bg, " ",1) != 0 ) {
-          if ( strcmp(last_bg, "3.8") < 0 ) {
+          if ( strcmp(last_bg, low_bg) < 0 ) {
             inTarget_color = GColorRed ;
-          } else if ( strcmp(last_bg, "7.5") > 0 ) {
+          } else if ( strcmp(last_bg, high_bg) > 0 ) {
             inTarget_color = GColorChromeYellow ;
           } else {
             inTarget_color = GColorIslamicGreen ;
           }
         }
-      #endif
+       text_layer_set_background_color(lower_layer, inTarget_color);
+       watch_battery_background_color = inTarget_color;
+       bridge_battery_background_color = inTarget_color;
    //   text_layer_set_text_color(bg_layer, inTarget_color);
-      text_layer_set_background_color(lower_layer, inTarget_color);
-      watch_battery_background_color = inTarget_color;
-      bridge_battery_background_color = inTarget_color;
+     #endif
       
      
       if (strcmp(last_bg,  " ") == 0) {
@@ -1643,6 +1653,9 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 
 		
 		case CGM_TREND_BEGIN_KEY:
+      #ifdef PBL_BW
+        break;
+      #endif
 			expected_trend_buffer_length = data->value->uint16;
 			#ifdef DEBUG_LEVEL
 			APP_LOG(APP_LOG_LEVEL_INFO, "TREND_BEGIN; About to receive Trend Image of %i size.", expected_trend_buffer_length);
@@ -1667,6 +1680,9 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 			#endif
 			break;
 		case CGM_TREND_DATA_KEY:
+      #ifdef PBL_BW
+        break;
+      #endif
 			#ifdef DEBUG_LEVEL
 			APP_LOG(APP_LOG_LEVEL_INFO, "TREND_DATA: receiving Trend Image chunk");
 			#endif
@@ -1686,6 +1702,9 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
 			break;
 		
 		case CGM_TREND_END_KEY:
+      #ifdef PBL_BW
+        break;
+      #endif
 			if(!doing_trend) {
 				#ifdef DEBUG_LEVEL
 				APP_LOG(APP_LOG_LEVEL_INFO, "Got a TREND_END without TREND_START");
@@ -1791,6 +1810,7 @@ static void send_cmd_cgm(void) {
 	AppMessageResult sendcmd_openerr = APP_MSG_OK;
 	AppMessageResult sendcmd_senderr = APP_MSG_OK;
 
+
 	dict_write_begin(iter, buffer, sizeof(buffer));
 	dict_write_int(iter, CGM_SYNC_KEY, &value ,4 ,false);	
 	//APP_LOG(APP_LOG_LEVEL_INFO, "SEND CMD IN, ABOUT TO OPEN APP MSG OUTBOX");
@@ -1805,6 +1825,14 @@ static void send_cmd_cgm(void) {
 		#endif
 		return;
 	}
+
+
+
+
+
+
+
+
 
 	#ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "SEND CMD, MSG OUTBOX OPEN, NO ERROR, ABOUT TO SEND MSG TO APP");
@@ -2320,13 +2348,20 @@ static void init_cgm(void) {
 	});
 
 	//APP_LOG(APP_LOG_LEVEL_INFO, "INIT CODE, REGISTER APP MESSAGE ERROR HANDLERS"); 
+
 	app_message_register_inbox_dropped(inbox_dropped_handler_cgm);
 	app_message_register_outbox_failed(outbox_failed_handler_cgm);
+
 	app_message_register_inbox_received(inbox_received_handler_cgm);
 	
 	//APP_LOG(APP_LOG_LEVEL_INFO, "INIT CODE, ABOUT TO CALL APP MSG OPEN"); 
+#ifdef PBL_COLOR
 	app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
+#else
+	app_message_open(256, 256);
+#endif
 	//APP_LOG(APP_LOG_LEVEL_INFO, "INIT CODE, APP MSG OPEN DONE");
+
 	
 	const bool animated_cgm = true;
 	window_stack_push(window_cgm, animated_cgm);
