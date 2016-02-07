@@ -70,6 +70,33 @@ AppTimer *timer_cgm = NULL;
 AppTimer *BT_timer = NULL;
 time_t time_now = 0;
 
+// variable for component position
+GPoint centerPoint ;
+int third_w ; 
+int displayFormat = 1;
+GRect grectWindow ;
+GRect grectUpperLayer ;
+GRect grectLowerLayer ;
+GRect grectImageBounds  ;
+GRect grectIconLayer ;
+GRect grectMessageLayer ;
+GRect grectDeltaLayer ;
+GRect grectTimeAgoLayer ;
+GRect grectBGLayer ;
+GRect grectTimeLayer ;
+GRect grectDateLayer ;
+GRect grectWatchBatteryLayer ;
+GRect grectBridgeBatteryLayer ;
+GRect grectTrendLayer;
+GColor dateColor  ;
+GColor text_color  ;
+GTextAlignment alignBG = GTextAlignmentCenter;
+GTextAlignment alignTime = GTextAlignmentCenter;
+GTextAlignment alignDate = GTextAlignmentCenter;
+GTextAlignment alignDelta = GTextAlignmentCenter;
+GTextAlignment alignTimeAgo = GTextAlignmentCenter;
+
+		
 // global variable for bluetooth connection
 bool bluetooth_connected_cgm = true;
 
@@ -626,8 +653,11 @@ static void draw_date_from_app() {
   
  // GSize tw = graphics_text_layout_get_content_size(time_watch_text, FONT_KEY_BITHAM_42_BOLD, time_bound ,GTextOverflowModeWordWrap,GTextAlignmentCenter );
 //  	APP_LOG(APP_LOG_LEVEL_DEBUG, "time w: %i h: %i", tw.w, tw.h);
-
-	draw_return = strftime(date_app_text, DATE_TEXTBUFF_SIZE, "%a %d %b", current_d_app);
+  if ( displayFormat == 2 ) {
+    draw_return = strftime(date_app_text, DATE_TEXTBUFF_SIZE, "%d %b", current_d_app);
+  } else {
+    draw_return = strftime(date_app_text, DATE_TEXTBUFF_SIZE, "%a %d %b", current_d_app);
+  }
 	if (draw_return != 0) {
 		text_layer_set_text(date_app_layer, date_app_text);
 	}
@@ -2005,21 +2035,60 @@ static void bridge_battery_proc(Layer *layer, GContext *ctx) {
   graphics_fill_rect(ctx, GRect(23, 10, 3, 2), 0, GCornerNone);
 }
 
+void setDisplay() {
+	if ( displayFormat == 1 ) {
+    grectTrendLayer = GRect(centerPoint.x - 144, (centerPoint.y / 2) - 42 , 144 , 84);
+    #ifdef PBL_BW
+  		grectUpperLayer = GRect(0,0,144,83);
+  		grectLowerLayer = GRect(0,84,144,165);
+  		grectIconLayer = GRect(85, -7, 78, 51);
+  		grectMessageLayer = GRect(0, 36, 143, 50);
+      grectDeltaLayer = GRect(0, 36, 143, 50);
+      grectTimeAgoLayer = GRect(52, 58, 40, 24);
+      grectBGLayer = GRect(0, -5, 95, 47);
+   		grectTimeLayer = GRect(0, 82, 143, 44);
+  		grectDateLayer = GRect(0, 124, 143, 26);
+  		grectWatchBatteryLayer = GRect(81, 148, 40, 20);
+  		grectBridgeBatteryLayer = GRect(0, 148, 40, 20) ;
+      dateColor = GColorWhite ;
+    #else
+  		grectUpperLayer = GRect(0,0,grectWindow.size.w, centerPoint.y - 42 );
+  		grectLowerLayer = GRect(0,centerPoint.y + 42 ,grectWindow.size.w, centerPoint.y - 42 );
+  		grectIconLayer = GRect(grectWindow.size.w - 144, centerPoint.y - 42 , 60 , 60);
+  		grectMessageLayer = GRect(0, centerPoint.y - 10, grectWindow.size.w, 50);
+  		#ifdef PBL_ROUND 
+  			grectDeltaLayer = GRect(0 , centerPoint.y - 89 , centerPoint.x , 25);
+  			grectTimeAgoLayer = GRect(0, centerPoint.y - 70 , centerPoint.x , 25);
+  			grectBGLayer = GRect(centerPoint.x , centerPoint.y - 89 ,centerPoint.x , 50);
+  		#else
+  			grectDeltaLayer = GRect(0 , centerPoint.y - 89 , third_w , 25);
+  			grectTimeAgoLayer = GRect(0, centerPoint.y - 70 , third_w , 25);
+  			grectBGLayer = GRect(third_w , centerPoint.y - 89 ,third_w * 2 , 50);
+  		#endif
+  		grectTimeLayer = GRect(centerPoint.x - 33 , centerPoint.y + 35 , centerPoint.x + 45 , 50);
+  		grectDateLayer = GRect(0 , centerPoint.y + 15 , grectWindow.size.w , 30);
+  		grectWatchBatteryLayer = GRect(centerPoint.x - 72, centerPoint.y + 59 , 40, 20);
+  		grectBridgeBatteryLayer = GRect(centerPoint.x - 72 , centerPoint.y + 40 , 40, 20) ;
+      dateColor = text_color ;
+      alignTime = GTextAlignmentLeft;
+    #endif
+	}
+}
+
 void window_load_cgm(Window *window_cgm) {
 	//APP_LOG(APP_LOG_LEVEL_INFO, "WINDOW LOAD");
 	
 	// VARIABLES
 	Layer *window_layer_cgm = NULL;
-	GColor text_color = GColorBlack ;
+	text_color = GColorBlack ;
   char large_font[27] = FONT_KEY_BITHAM_42_BOLD ;
   char mid_font[27] = FONT_KEY_GOTHIC_24_BOLD;
   char small_font[27] = FONT_KEY_GOTHIC_18_BOLD;
-  GRect image_bounds  ;
   
   // CODE START
 	#ifdef PBL_COLOR
     text_color = GColorDukeBlue ;
-  #endif
+   #endif
 
 	window_layer_cgm = window_get_root_layer(window_cgm);
 
@@ -2028,27 +2097,27 @@ void window_load_cgm(Window *window_cgm) {
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Upper and Lower face panels");
 	#endif
   
-  window_set_background_color(window_cgm, GColorWhite);
+	window_set_background_color(window_cgm, GColorWhite);
 
-  GRect bounds = layer_get_bounds(window_layer_cgm);
-  int center_h = bounds.size.h / 2; 
-  int center_w = bounds.size.w / 2; 
-  #ifdef PBL_RECT
-    int third_w = bounds.size.w / 3; 
-  #endif
-	upper_layer = text_layer_create(GRect(0,0,bounds.size.w, center_h - 42 ));
-  text_layer_set_background_color(upper_layer, GColorClear);
+	grectWindow = layer_get_bounds(window_layer_cgm);
+	centerPoint = grect_center_point(&grectWindow);
+	third_w = grectWindow.size.w / 3; 
+	
+	setDisplay();	
+	 
+	upper_layer = text_layer_create(grectUpperLayer);
+	text_layer_set_background_color(upper_layer, GColorClear);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(upper_layer));
 
-	lower_layer = text_layer_create(GRect(0,center_h + 42 ,bounds.size.w, center_h - 42 ));
-  text_layer_set_background_color(lower_layer, text_color );
+	lower_layer = text_layer_create(grectLowerLayer);
+	text_layer_set_background_color(lower_layer, text_color );
 	layer_add_child(window_layer_cgm, text_layer_get_layer(lower_layer));
 
 	// ARROW OR SPECIAL VALUE
 	#ifdef DEBUG_LEVEL
 	  APP_LOG(APP_LOG_LEVEL_INFO, "Creating Arrow Bitmap layer");
 	#endif
-	icon_layer = bitmap_layer_create(GRect(bounds.size.w - 144, center_h - 42 , 60 , 60));
+	icon_layer = bitmap_layer_create(grectIconLayer);
 	#ifdef PBL_COLOR
 	  bitmap_layer_set_compositing_mode(icon_layer, GCompOpSet);
 	#endif
@@ -2060,7 +2129,7 @@ void window_load_cgm(Window *window_cgm) {
 	#ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Message Text layer");
 	#endif
-	message_layer = text_layer_create(GRect(0, center_h - 10, bounds.size.w, 50));
+	message_layer = text_layer_create(grectMessageLayer);
 	text_layer_set_text_color(message_layer, text_color);
 	text_layer_set_background_color(message_layer, GColorClear);
 	text_layer_set_font(message_layer, fonts_get_system_font(mid_font));
@@ -2068,63 +2137,39 @@ void window_load_cgm(Window *window_cgm) {
 	layer_set_hidden((Layer *)message_layer, false);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(message_layer));
 
-  // DELTA BG
+	// DELTA BG
 	#ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Delta BG Text layer");
 	#endif
-	#ifdef PBL_ROUND 
-    delta_layer = text_layer_create(GRect(0 , center_h - 89 , center_w , 25));
-  #else
-    delta_layer = text_layer_create(GRect(0 , center_h - 89 , third_w , 25));
-  #endif
-  text_layer_set_text(delta_layer, "+0.00");
+    delta_layer = text_layer_create(grectDeltaLayer );
+	text_layer_set_text(delta_layer, "+0.00");
 	text_layer_set_text_color(delta_layer, text_color);
 	text_layer_set_background_color(delta_layer, GColorClear);
 	text_layer_set_font(delta_layer, fonts_get_system_font(mid_font));
-	#ifdef PBL_ROUND 
-    text_layer_set_text_alignment(delta_layer, GTextAlignmentRight);
-  #else
-    text_layer_set_text_alignment(delta_layer, GTextAlignmentCenter);
-  #endif
+	text_layer_set_text_alignment(delta_layer, alignDelta);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(delta_layer));
 
 	// CGM TIME AGO READING
 	#ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating CGM Time Ago Bitmap layer");
 	#endif
-	#ifdef PBL_ROUND 
-    cgmtime_layer = text_layer_create(GRect(0, center_h - 70 , center_w , 25));
-  #else
-    cgmtime_layer = text_layer_create(GRect(0, center_h - 70 , third_w , 25));
-  #endif
-  text_layer_set_text(cgmtime_layer, "now");
+    cgmtime_layer = text_layer_create(grectTimeAgoLayer);
+	text_layer_set_text(cgmtime_layer, "now");
 	text_layer_set_text_color(cgmtime_layer, text_color);                         
 	text_layer_set_background_color(cgmtime_layer, GColorClear);
 	text_layer_set_font(cgmtime_layer, fonts_get_system_font(mid_font));
-	#ifdef PBL_ROUND 
-    text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentRight);
-  #else
-    text_layer_set_text_alignment(cgmtime_layer, GTextAlignmentCenter);
-  #endif
+	text_layer_set_text_alignment(cgmtime_layer, alignTimeAgo);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(cgmtime_layer));
 
-  // BG
+	// BG
 	#ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating BG Text layer");
 	#endif
-	#ifdef PBL_ROUND 
-    bg_layer = text_layer_create(GRect(center_w , center_h - 89 ,center_w , 50));
-  #else
-    bg_layer = text_layer_create(GRect(third_w , center_h - 89 ,third_w * 2 , 50));
-  #endif
+    bg_layer = text_layer_create(grectBGLayer);
 	text_layer_set_text_color(bg_layer, text_color);
 	text_layer_set_background_color(bg_layer, GColorClear);
 	text_layer_set_font(bg_layer, fonts_get_system_font(large_font));
-	#ifdef PBL_ROUND 
-    text_layer_set_text_alignment(bg_layer, GTextAlignmentLeft);
-  #else
-    text_layer_set_text_alignment(bg_layer, GTextAlignmentCenter);
-  #endif
+	text_layer_set_text_alignment(bg_layer, alignBG);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(bg_layer));
 
 	
@@ -2132,24 +2177,22 @@ void window_load_cgm(Window *window_cgm) {
 	#ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Watch Time Text layer");
 	#endif
- // time_bound = GRect(center_w - 33 , center_h + 35 , center_w + 45 , 50);
-  time_watch_layer = text_layer_create(GRect(center_w - 33 , center_h + 35 , center_w + 45 , 50) );
+	time_watch_layer = text_layer_create(grectTimeLayer);
 	text_layer_set_text_color(time_watch_layer, GColorWhite);
 	text_layer_set_background_color(time_watch_layer, GColorClear);
 	text_layer_set_font(time_watch_layer, fonts_get_system_font(large_font));
-  text_layer_set_text_alignment(time_watch_layer, GTextAlignmentLeft);
+	text_layer_set_text_alignment(time_watch_layer, alignTime);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(time_watch_layer));
 	
 	// CURRENT ACTUAL DATE FROM APP
 	#ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Watch Date Text layer");
 	#endif
-  date_app_layer = text_layer_create(GRect(0 , center_h + 15 , bounds.size.w , 30));
-  
-	text_layer_set_text_color(date_app_layer, text_color);
+	date_app_layer = text_layer_create(grectDateLayer);
+	text_layer_set_text_color(date_app_layer, dateColor);
 	text_layer_set_background_color(date_app_layer, GColorClear);
 	text_layer_set_font(date_app_layer, fonts_get_system_font(mid_font));
-	text_layer_set_text_alignment(date_app_layer, GTextAlignmentCenter);
+	text_layer_set_text_alignment(date_app_layer, alignDate);
 	draw_date_from_app();
 	layer_add_child(window_layer_cgm, text_layer_get_layer(date_app_layer));
 
@@ -2157,32 +2200,34 @@ void window_load_cgm(Window *window_cgm) {
 	#ifdef DEBUG_LEVEL
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating Phone Battery Text layer");
 	#endif
-  bridge_battery_background_color = COLOR_FALLBACK(GColorDukeBlue, GColorBlack) ;
-  bridge_battery_fill_color = COLOR_FALLBACK(GColorCyan, GColorWhite)  ;
-  bridge_battery_low_color = COLOR_FALLBACK(GColorRed, GColorWhite)   ;
-  bridge_battery_border_color = GColorWhite;
+	bridge_battery_background_color = COLOR_FALLBACK(GColorDukeBlue, GColorBlack) ;
+	bridge_battery_fill_color = COLOR_FALLBACK(GColorCyan, GColorWhite)  ;
+	bridge_battery_low_color = COLOR_FALLBACK(GColorRed, GColorWhite)   ;
+	bridge_battery_border_color = GColorWhite;
     
-	bridge_battery_text_layer = text_layer_create(GRect(center_w - 72 , center_h + 40 , 40, 20));
-  text_layer_set_font(bridge_battery_text_layer, fonts_get_system_font(small_font));
+	bridge_battery_text_layer = text_layer_create(grectBridgeBatteryLayer);
+	text_layer_set_font(bridge_battery_text_layer, fonts_get_system_font(small_font));
 	text_layer_set_text_alignment(bridge_battery_text_layer, GTextAlignmentLeft);
-  text_layer_set_background_color(bridge_battery_text_layer, GColorClear );
-  text_layer_set_text_color(bridge_battery_text_layer, bridge_battery_border_color );
-  text_layer_set_text(bridge_battery_text_layer, "B");
-  layer_add_child(window_layer_cgm, text_layer_get_layer(bridge_battery_text_layer));
+	text_layer_set_background_color(bridge_battery_text_layer, GColorClear );
+	text_layer_set_text_color(bridge_battery_text_layer, bridge_battery_border_color );
+	text_layer_set_text(bridge_battery_text_layer, "B");
+	layer_add_child(window_layer_cgm, text_layer_get_layer(bridge_battery_text_layer));
   
-  if (battery_graphic) {
-    image_bounds = GRect(center_w - 60, center_h + 46 , 25, 12);
-    bridge_battery_layer = text_layer_create(image_bounds);
-    text_layer_set_background_color(bridge_battery_layer, bridge_battery_border_color );
-    layer_add_child(window_layer_cgm, text_layer_get_layer(bridge_battery_layer));
-  
-    bridge_battery_draw_layer = layer_create(image_bounds);
-  
-    layer_set_update_proc(bridge_battery_draw_layer, bridge_battery_proc);
-    layer_add_child(window_layer_cgm, bridge_battery_draw_layer);	
-  }
-  #ifdef DEBUG_LEVEL
-  //	APP_LOG(APP_LOG_LEVEL_INFO, "battlevel_layer; %s", text_layer_get_text(battlevel_layer));
+	if (battery_graphic) {
+//		GRect(centerPoint.x - 72 , centerPoint.y + 40 , 40, 20);
+//		grectImageBounds = GRect(centerPoint.x - 60, centerPoint.y + 46 , 25, 12);
+		grectImageBounds = grect_inset(grectBridgeBatteryLayer, GEdgeInsets(6,2,2, 12));
+
+		bridge_battery_layer = text_layer_create(grectImageBounds);
+		text_layer_set_background_color(bridge_battery_layer, bridge_battery_border_color );
+		layer_add_child(window_layer_cgm, text_layer_get_layer(bridge_battery_layer));
+	  
+		bridge_battery_draw_layer = layer_create(grectImageBounds);
+		layer_set_update_proc(bridge_battery_draw_layer, bridge_battery_proc);
+		layer_add_child(window_layer_cgm, bridge_battery_draw_layer);	
+	}
+	#ifdef DEBUG_LEVEL
+	//	APP_LOG(APP_LOG_LEVEL_INFO, "battlevel_layer; %s", text_layer_get_text(battlevel_layer));
 	#endif
 	
 
@@ -2192,36 +2237,37 @@ void window_load_cgm(Window *window_cgm) {
 	#endif
 	BatteryChargeState charge_state = battery_state_service_peek();
   
-  watch_battery_background_color = COLOR_FALLBACK(GColorDukeBlue, GColorBlack) ;
-  watch_battery_fill_color = COLOR_FALLBACK(GColorCyan, GColorWhite)  ;
-  watch_battery_low_color = COLOR_FALLBACK(GColorRed, GColorWhite)   ;
-  watch_battery_border_color = GColorWhite;
-  
-	watch_battery_text_layer = text_layer_create(GRect(center_w - 72, center_h + 59 , 40, 20));
-  text_layer_set_font(watch_battery_text_layer, fonts_get_system_font(small_font));
+	watch_battery_background_color = COLOR_FALLBACK(GColorDukeBlue, GColorBlack) ;
+	watch_battery_fill_color = COLOR_FALLBACK(GColorCyan, GColorWhite)  ;
+	watch_battery_low_color = COLOR_FALLBACK(GColorRed, GColorWhite)   ;
+	watch_battery_border_color = GColorWhite;
+	  
+	watch_battery_text_layer = text_layer_create(grectWatchBatteryLayer);
+	text_layer_set_font(watch_battery_text_layer, fonts_get_system_font(small_font));
 	text_layer_set_text_alignment(watch_battery_text_layer, GTextAlignmentLeft);
-  text_layer_set_background_color(watch_battery_text_layer, GColorClear );
-  text_layer_set_text_color(watch_battery_text_layer, watch_battery_border_color );
-  text_layer_set_text(watch_battery_text_layer, "W");
-  layer_add_child(window_layer_cgm, text_layer_get_layer(watch_battery_text_layer));
+	text_layer_set_background_color(watch_battery_text_layer, GColorClear );
+	text_layer_set_text_color(watch_battery_text_layer, watch_battery_border_color );
+	text_layer_set_text(watch_battery_text_layer, "W");
+	layer_add_child(window_layer_cgm, text_layer_get_layer(watch_battery_text_layer));
 
-  if (battery_graphic) {
+	if (battery_graphic) {
+		grectImageBounds = grect_inset(grectWatchBatteryLayer, GEdgeInsets(6,2,2, 12));
+
+	//   grectImageBounds = GRect(centerPoint.x - 60, centerPoint.y + 65  , 26, 12);
+		watch_battery_layer = text_layer_create(grectImageBounds);
+		text_layer_set_background_color(watch_battery_layer, bridge_battery_border_color );
+		layer_add_child(window_layer_cgm, text_layer_get_layer(watch_battery_layer));
+	  
+		watch_battery_draw_layer = layer_create(grectImageBounds);
+	  
+		layer_set_update_proc(watch_battery_draw_layer, watch_battery_proc);
+		layer_add_child(window_layer_cgm, watch_battery_draw_layer);
+	}
  
-    image_bounds = GRect(center_w - 60, center_h + 65  , 26, 12);
-    watch_battery_layer = text_layer_create(image_bounds);
-    text_layer_set_background_color(watch_battery_layer, watch_battery_border_color );
-    layer_add_child(window_layer_cgm, text_layer_get_layer(watch_battery_layer));
-  
-    watch_battery_draw_layer = layer_create(image_bounds);
-  
-    layer_set_update_proc(watch_battery_draw_layer, watch_battery_proc);
-    layer_add_child(window_layer_cgm, watch_battery_draw_layer);
-  }
- 
-  //subscribe to the battery handler
+	//subscribe to the battery handler
 	battery_state_service_subscribe(watch_battery_handler);
 
-  watch_battery_handler(charge_state);
+	watch_battery_handler(charge_state);
 
   
   
@@ -2235,7 +2281,7 @@ void window_load_cgm(Window *window_cgm) {
 	APP_LOG(APP_LOG_LEVEL_INFO, "Creating BG Trend Bitmap layer");
 	#endif
   // bitmap is 144,84
-	bg_trend_layer = bitmap_layer_create(GRect(bounds.size.w - 144, (bounds.size.h / 2) - 42 , 144 , 84));
+	bg_trend_layer = bitmap_layer_create(grectTrendLayer ); 
 	// bg_trend_layer = bitmap_layer_create(GRect(0,26,144,84));
 	#ifdef PBL_PLATFORM_BASALT
 	bitmap_layer_set_compositing_mode(bg_trend_layer, GCompOpSet);
