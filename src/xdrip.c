@@ -45,7 +45,7 @@ BitmapLayer *bg_trend_layer = NULL;
 BitmapLayer *upper_face_layer = NULL;
 BitmapLayer *lower_face_layer = NULL;
 
-static GFont large_font, mid_font, small_font, timeFont  ;
+static GFont bgFont, midFont, smallFont, timeFont, messageFont  ;
 
 GBitmap *icon_bitmap = NULL;
 GBitmap *appicon_bitmap = NULL;
@@ -1859,13 +1859,14 @@ static void bridge_battery_proc(Layer *layer, GContext *ctx) {
 }
 
 void setFonts() {
-  large_font = fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD) ;
-  mid_font = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD) ;
-  small_font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD) ;
+  bgFont = fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD) ;
+  midFont = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD) ;
+  smallFont = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD) ;
+  messageFont = fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD) ;
   if ( displayFormat == 3 ) {
-    timeFont = fonts_get_system_font(FONT_KEY_BITHAM_34_MEDIUM_NUMBERS) ;
+    timeFont = fonts_get_system_font(FONT_KEY_BITHAM_30_BLACK) ;
   } else {
-    timeFont = large_font;
+    timeFont = fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD) ;
   }
  
 }
@@ -1993,7 +1994,7 @@ void window_load_cgm(Window *window_cgm) {
 	message_layer = text_layer_create(grectMessageLayer);
 	text_layer_set_text_color(message_layer, textColor);
 	text_layer_set_background_color(message_layer, GColorClear);
-	text_layer_set_font(message_layer, mid_font);
+	text_layer_set_font(message_layer, messageFont);
 	text_layer_set_text_alignment(message_layer, GTextAlignmentCenter);
 	layer_set_hidden((Layer *)message_layer, false);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(message_layer));
@@ -2006,7 +2007,7 @@ void window_load_cgm(Window *window_cgm) {
 	text_layer_set_text(delta_layer, "+0.00");
 	text_layer_set_text_color(delta_layer, textColor);
 	text_layer_set_background_color(delta_layer, GColorClear);
-	text_layer_set_font(delta_layer, mid_font);
+	text_layer_set_font(delta_layer, midFont);
 	text_layer_set_text_alignment(delta_layer, alignDelta);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(delta_layer));
 
@@ -2018,7 +2019,7 @@ void window_load_cgm(Window *window_cgm) {
 	text_layer_set_text(cgmtime_layer, "now");
 	text_layer_set_text_color(cgmtime_layer, textColor);                         
 	text_layer_set_background_color(cgmtime_layer, GColorClear);
-	text_layer_set_font(cgmtime_layer, mid_font);
+	text_layer_set_font(cgmtime_layer, midFont);
 	text_layer_set_text_alignment(cgmtime_layer, alignTimeAgo);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(cgmtime_layer));
 
@@ -2029,7 +2030,7 @@ void window_load_cgm(Window *window_cgm) {
   bg_layer = text_layer_create(grectBGLayer);
 	text_layer_set_text_color(bg_layer, bgColor);
 	text_layer_set_background_color(bg_layer, GColorClear);
-	text_layer_set_font(bg_layer, large_font);
+	text_layer_set_font(bg_layer, bgFont);
 	text_layer_set_text_alignment(bg_layer, alignBG);
 	layer_add_child(window_layer_cgm, text_layer_get_layer(bg_layer));
 	
@@ -2051,7 +2052,7 @@ void window_load_cgm(Window *window_cgm) {
 	date_app_layer = text_layer_create(grectDateLayer);
 	text_layer_set_text_color(date_app_layer, dateColor);
 	text_layer_set_background_color(date_app_layer, GColorClear);
-	text_layer_set_font(date_app_layer, mid_font);
+	text_layer_set_font(date_app_layer, midFont);
 	text_layer_set_text_alignment(date_app_layer, alignDate);
 	draw_date_from_app();
 	layer_add_child(window_layer_cgm, text_layer_get_layer(date_app_layer));
@@ -2062,7 +2063,7 @@ void window_load_cgm(Window *window_cgm) {
 	#endif
     
 	bridge_battery_text_layer = text_layer_create(grectBridgeBatteryLayer);
-	text_layer_set_font(bridge_battery_text_layer, small_font);
+	text_layer_set_font(bridge_battery_text_layer, smallFont);
 	text_layer_set_text_alignment(bridge_battery_text_layer, GTextAlignmentLeft);
 	text_layer_set_background_color(bridge_battery_text_layer, GColorClear );
 	text_layer_set_text_color(bridge_battery_text_layer, bridge_battery_border_color );
@@ -2093,7 +2094,7 @@ void window_load_cgm(Window *window_cgm) {
   
 
 	watch_battery_text_layer = text_layer_create(grectWatchBatteryLayer);
-	text_layer_set_font(watch_battery_text_layer, small_font);
+	text_layer_set_font(watch_battery_text_layer, smallFont);
 	text_layer_set_text_alignment(watch_battery_text_layer, GTextAlignmentLeft);
 	text_layer_set_background_color(watch_battery_text_layer, GColorClear );
 	text_layer_set_text_color(watch_battery_text_layer, watch_battery_border_color );
