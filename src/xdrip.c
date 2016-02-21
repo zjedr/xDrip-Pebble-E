@@ -12,6 +12,19 @@ Make sure you set this to 0 before building a release. */
 #define BATTLEVEL_MSGSTR_SIZE 5
 
 // global window variables
+// display settings
+#ifdef PBL_COLOR
+  static char high_bg[6] = "7.5";
+  static char low_bg[6] = "3.8";
+#endif
+#ifdef PBL_ROUND 
+  int displayFormat = 2;
+#else
+  // set to 1,2, or 3 
+  int displayFormat = 3;
+#endif
+bool battery_graphic = true ;
+
 // ANYTHING THAT IS CALLED BY PEBBLE API HAS TO BE NOT STATIC
 
 Window *window_cgm = NULL;
@@ -33,11 +46,6 @@ Layer *watch_battery_draw_layer = NULL;
 TextLayer *bridge_battery_layer = NULL;
 TextLayer *bridge_battery_text_layer = NULL;
 Layer *bridge_battery_draw_layer = NULL;
-
-#ifdef PBL_COLOR
-  static char high_bg[6] = "7.5";
-  static char low_bg[6] = "3.8";
-#endif
 
 BitmapLayer *icon_layer = NULL;
 //BitmapLayer *appicon_layer = NULL;
@@ -82,12 +90,6 @@ time_t time_now = 0;
 // variable for component position
 GPoint centerPoint ;
 int third_w ; 
-#ifdef PBL_ROUND 
-  int displayFormat = 2;
-#else
-  // set to 1,2, or 3 
-  int displayFormat = 3;
-#endif
 GRect grectWindow ;
 GRect grectUpperLayer ;
 GRect grectLowerLayer ;
@@ -123,7 +125,6 @@ static GColor8 bridge_battery_fill_color, bridge_battery_low_color, bridge_batte
 
 static int battery_pcnt = 0;
 static bool battery_changing = false;
-bool battery_graphic = true ;
 
 // global variables for sync tuple functions
 // buffers have to be static and hardcoded
@@ -1381,7 +1382,7 @@ static void load_battlevel() {
     layer_mark_dirty(bridge_battery_draw_layer);
   } else {
     static char bridge_battlevel_percent[9];
-    snprintf(bridge_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "B:%s ", last_battlevel);
+    snprintf(bridge_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "B:%s", last_battlevel);
     text_layer_set_text_color(bridge_battery_text_layer, bridge_battery_border_color);
     #ifdef PBL_COLOR
     if(atoi(last_battlevel) < 20 ) {
@@ -1561,21 +1562,11 @@ void inbox_received_handler_cgm(DictionaryIterator *iterator, void *context) {
         APP_LOG(APP_LOG_LEVEL_DEBUG, "TREND_BEGIN: can not allocate");
       }
   
-//			#endif
-//			#ifdef PBL_PLATFORM_APLITE
-//			bg_trend_bitmap = gbitmap_create_with_png_data(trend_buffer, trend_buffer_length);
-//			#endif
-			//graphics_context_set_antialiased(bg_trend_bitmap, false);
 
 			if(bg_trend_bitmap != NULL) {				
 				#ifdef DEBUG_LEVEL
 				APP_LOG(APP_LOG_LEVEL_INFO, "bg_trend_bitmap created, setting to layer");
 				#endif
-//				#ifdef PBL_PLATFORM_BASALT
-//				GColor *palette = gbitmap_get_palette(bg_trend_bitmap);
-//				palette[0]=GColorClear;
-//				gbitmap_set_palette(bg_trend_bitmap, palette, true);
-//				#endif
 				bitmap_layer_set_bitmap(bg_trend_layer, bg_trend_bitmap);
 			} 
 			#ifdef DEBUG_LEVEL 
@@ -1768,60 +1759,6 @@ void handle_second_tick_cgm(struct tm* tick_time_cgm, TimeUnits units_changed_cg
 	
 } // end handle_minute_tick_cgm
 
-// battery_handler - updates the pebble battery percentage.
-static void watch_battery_handler(BatteryChargeState charge_state) {
-  battery_changing = charge_state.is_charging ;
-  battery_pcnt = charge_state.charge_percent;
- 
-  if (battery_graphic) {
-    layer_mark_dirty(watch_battery_draw_layer);
-  } else {
-    static char watch_battlevel_percent[9];
-    snprintf(watch_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "W:%i ", battery_pcnt);
-    if(battery_changing) {
-  		text_layer_set_text_color(watch_battery_text_layer, watch_battery_fill_color);
-  		text_layer_set_background_color(watch_battery_text_layer, watch_battery_border_color);
-   	} else {
-      text_layer_set_text_color(watch_battery_text_layer, watch_battery_border_color);
-  		#ifdef PBL_COLOR
-    		if(battery_pcnt < 20 ) {
-       			text_layer_set_text_color(watch_battery_text_layer, watch_battery_low_color);
-      		}
-      #endif
- 		  text_layer_set_background_color(watch_battery_text_layer, GColorClear);
-  	}	
-    text_layer_set_text(watch_battery_text_layer, watch_battlevel_percent);
-  }
-} // end watch_battery_handler
-
-static void draw_battery(GContext *ctx, GColor borderColor, GColor fillColor, GColor lowColor, int battPcnt, bool charging) {
-  // draw battery
-  graphics_context_set_stroke_color(ctx, borderColor );
-  graphics_draw_round_rect(ctx, GRect(0, 0, 22, 12),1);
-  
-  graphics_context_set_fill_color(ctx, borderColor);
-  graphics_fill_rect(ctx, GRect(22 , 3, 2, 6), 0, GCornerNone);
-  
-  // fill battery
-  int width = (int)(float)(((float)battPcnt / 100.0F) * 20.0F) ;
-  if ( battery_pcnt <= 20 ) { 
-    graphics_context_set_fill_color(ctx, lowColor); 
-  } else {
-    graphics_context_set_fill_color(ctx, fillColor);
-  }
-  graphics_fill_rect(ctx, GRect(1 , 1, width, 10), 0, GCornerNone);
-      
-  if ( charging ) {
-    graphics_context_set_stroke_color(ctx, lowColor);
-    graphics_draw_line(ctx, GPoint(12, 0), GPoint(10, 6));
-    graphics_draw_line(ctx, GPoint(12, 0), GPoint(9, 6));
-    graphics_draw_line(ctx, GPoint(9, 5), GPoint(13, 5));
-    graphics_draw_line(ctx, GPoint(9, 6), GPoint(13, 6));
-    graphics_draw_line(ctx, GPoint(12, 6), GPoint(9, 12));
-    graphics_draw_line(ctx, GPoint(11, 6), GPoint(9, 12));
-  }
-}
-
 static void setColors() {
 	textColor = COLOR_FALLBACK(GColorDukeBlue, GColorBlack) ;
   bgColor = textColor;
@@ -1848,28 +1785,6 @@ static void setColors() {
   }
 }
 
-static void watch_battery_proc(Layer *layer, GContext *ctx) {
-  setColors();
-  draw_battery(ctx, watch_battery_border_color, watch_battery_fill_color, watch_battery_low_color, battery_pcnt, battery_changing );
-}
-
-static void bridge_battery_proc(Layer *layer, GContext *ctx) {
-  setColors();
-  draw_battery(ctx, bridge_battery_border_color, bridge_battery_fill_color, bridge_battery_low_color, atoi(last_battlevel), false );
-}
-
-void setFonts() {
-  bgFont = fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD) ;
-  midFont = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD) ;
-  smallFont = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD) ;
-  messageFont = fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD) ;
-  if ( displayFormat == 3 ) {
-    timeFont = fonts_get_system_font(FONT_KEY_BITHAM_30_BLACK) ;
-  } else {
-    timeFont = fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD) ;
-  }
- 
-}
 void setDisplay() {
   #ifdef PBL_BW
      	grectUpperLayer = GRect(0,0,144,83);
@@ -1932,14 +1847,97 @@ void setDisplay() {
         grectDeltaLayer = GRect(0 , centerPoint.y - 89 , third_w , 25);
         grectTimeAgoLayer = GRect(0, centerPoint.y - 70 , third_w , 25);
         grectBGLayer = GRect(third_w , centerPoint.y - 89 ,third_w * 2 , 50);
-        grectDateLayer = GRect(third_w , centerPoint.y + 33 , third_w * 2 , 25);
-        grectTimeLayer = GRect(third_w , centerPoint.y + 50 , third_w * 2 , 50);
-        grectWatchBatteryLayer = GRect(5, centerPoint.y + 60 , third_w - 5, 20);
-        grectBridgeBatteryLayer = GRect(5 , centerPoint.y + 40 , third_w - 5, 20) ;
-        alignIcon = GAlignTopLeft ;
+        grectDateLayer = GRect(third_w , centerPoint.y + 34 , third_w * 2 , 25);
+        grectTimeLayer = GRect(third_w , centerPoint.y + 53 , third_w * 2 , 50);
+        if (battery_graphic) {
+          grectWatchBatteryLayer = GRect(5, centerPoint.y + 60 , third_w - 5, 25);
+          grectBridgeBatteryLayer = GRect(5 , centerPoint.y + 40 , third_w - 5, 25) ;
+        } else {
+          grectWatchBatteryLayer = GRect(0, centerPoint.y + 60 , third_w , 25);
+          grectBridgeBatteryLayer = GRect(0 , centerPoint.y + 40 , third_w , 25) ;
+        }
         break;
+        alignIcon = GAlignTopLeft ;
     }
   #endif
+}
+
+// battery_handler - updates the pebble battery percentage.
+static void watch_battery_handler(BatteryChargeState charge_state) {
+  battery_changing = charge_state.is_charging ;
+  battery_pcnt = charge_state.charge_percent;
+ 
+  if (battery_graphic) {
+    layer_mark_dirty(watch_battery_draw_layer);
+  } else {
+    setColors();
+    static char watch_battlevel_percent[9];
+    snprintf(watch_battlevel_percent, BATTLEVEL_FORMATTED_SIZE, "W:%i", battery_pcnt);
+    if(battery_changing) {
+  		text_layer_set_text_color(watch_battery_text_layer, watch_battery_fill_color);
+  		text_layer_set_background_color(watch_battery_text_layer, watch_battery_border_color);
+   	} else {
+      text_layer_set_text_color(watch_battery_text_layer, watch_battery_border_color);
+  		#ifdef PBL_COLOR
+    		if(battery_pcnt < 20 ) {
+       			text_layer_set_text_color(watch_battery_text_layer, watch_battery_low_color);
+      		}
+      #endif
+ 		  text_layer_set_background_color(watch_battery_text_layer, GColorClear);
+  	}	
+    text_layer_set_text(watch_battery_text_layer, watch_battlevel_percent);
+  }
+} // end watch_battery_handler
+
+static void draw_battery(GContext *ctx, GColor borderColor, GColor fillColor, GColor lowColor, int battPcnt, bool charging) {
+  // draw battery
+  graphics_context_set_stroke_color(ctx, borderColor );
+  graphics_draw_round_rect(ctx, GRect(0, 0, 22, 12),1);
+  
+  graphics_context_set_fill_color(ctx, borderColor);
+  graphics_fill_rect(ctx, GRect(22 , 3, 2, 6), 0, GCornerNone);
+  
+  // fill battery
+  int width = (int)(float)(((float)battPcnt / 100.0F) * 20.0F) ;
+  if ( battPcnt <= 20 ) { 
+    graphics_context_set_fill_color(ctx, lowColor); 
+  } else {
+    graphics_context_set_fill_color(ctx, fillColor);
+  }
+  graphics_fill_rect(ctx, GRect(1 , 1, width, 10), 0, GCornerNone);
+      
+  if ( charging ) {
+    graphics_context_set_stroke_color(ctx, lowColor);
+    graphics_draw_line(ctx, GPoint(12, 0), GPoint(10, 6));
+    graphics_draw_line(ctx, GPoint(12, 0), GPoint(9, 6));
+    graphics_draw_line(ctx, GPoint(9, 5), GPoint(13, 5));
+    graphics_draw_line(ctx, GPoint(9, 6), GPoint(13, 6));
+    graphics_draw_line(ctx, GPoint(12, 6), GPoint(9, 12));
+    graphics_draw_line(ctx, GPoint(11, 6), GPoint(9, 12));
+  }
+}
+
+static void watch_battery_proc(Layer *layer, GContext *ctx) {
+  setColors();
+  draw_battery(ctx, watch_battery_border_color, watch_battery_fill_color, watch_battery_low_color, battery_pcnt, battery_changing );
+}
+
+static void bridge_battery_proc(Layer *layer, GContext *ctx) {
+  setColors();
+  draw_battery(ctx, bridge_battery_border_color, bridge_battery_fill_color, bridge_battery_low_color, atoi(last_battlevel), false );
+}
+
+void setFonts() {
+  bgFont = fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD) ;
+  midFont = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD) ;
+  smallFont = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD) ;
+  messageFont = fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD) ;
+  if ( displayFormat == 3 ) {
+    timeFont = fonts_get_system_font(FONT_KEY_BITHAM_30_BLACK) ;
+  } else {
+    timeFont = fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD) ;
+  }
+ 
 }
 
 void window_load_cgm(Window *window_cgm) {
