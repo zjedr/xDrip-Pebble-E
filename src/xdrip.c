@@ -5,7 +5,7 @@
 /* The line below will set the debug message level.  
 Make sure you set this to 0 before building a release. */
 
-#define DEBUG_LEVEL 0
+#define DEBUG_LEVEL 1
 #define ICON_MSGSTR_SIZE 4
 #define BG_MSGSTR_SIZE 6
 #define BGDELTA_MSGSTR_SIZE 13
@@ -14,14 +14,15 @@ Make sure you set this to 0 before building a release. */
 // global window variables
 // display settings
 #ifdef PBL_COLOR
-  static char high_bg[6] = "7.5";
-  static char low_bg[6] = "3.8";
+  // for mmol users suffix with .0 on whole numbers ie. "4.0"
+  static char high_bg[6] = "30.0";
+  static char low_bg[6] = "1.0";
 #endif
 #ifdef PBL_ROUND 
   int displayFormat = 2;
 #else
   // set to 1,2, or 3 
-  int displayFormat = 3;
+  int displayFormat = 1;
 #endif
 bool battery_graphic = true ;
 
@@ -1053,16 +1054,13 @@ static void load_bg() {
 	// CODE START
 	
 	// if special value set, erase anything in the icon field
-	APP_LOG(APP_LOG_LEVEL_DEBUG, "1  LAST BG: %s", last_bg);
 	if (specvalue_alert == true) {
 		create_update_bitmap(&specialvalue_bitmap,icon_layer,SPECIAL_VALUE_ICONS[NONE_SPECVALUE_ICON_INDX]);
 	}
-		APP_LOG(APP_LOG_LEVEL_DEBUG, "2 LAST BG: %s", last_bg);
 
 	// set special value alert to false no matter what
 	specvalue_alert = false;
   
-  		APP_LOG(APP_LOG_LEVEL_DEBUG, "3 LAST BG: %s", last_bg);
 
 	#if DEBUG_LEVEL > 1
 	APP_LOG(APP_LOG_LEVEL_DEBUG, "LAST BG: %s", last_bg);
@@ -1074,7 +1072,6 @@ static void load_bg() {
 	// check for init code or error code
 	if (last_bg[0] == '-') {
 		lastAlertTime = 0;
-	 		APP_LOG(APP_LOG_LEVEL_DEBUG, "4 LAST BG: %s", last_bg);
 	
 		// check bluetooth
 		bluetooth_connected_cgm = bluetooth_connection_service_peek();
@@ -1100,7 +1097,6 @@ static void load_bg() {
 		
 	else {
 
-     		APP_LOG(APP_LOG_LEVEL_DEBUG, "4 LAST BG: %s", last_bg);
 // valid BG
 		// check for special value, if special value, then replace icon and blank BG; else send current BG	
 		//APP_LOG(APP_LOG_LEVEL_INFO, "LOAD BG, BEFORE CREATE SPEC VALUE BITMAP");
@@ -1145,19 +1141,16 @@ static void load_bg() {
 		//APP_LOG(APP_LOG_LEVEL_INFO, "LOAD BG, AFTER CREATE SPEC VALUE BITMAP");
 			
 		if (specvalue_alert == false) {
- 		APP_LOG(APP_LOG_LEVEL_DEBUG, "5 LAST BG: %s", last_bg);
 			// we didn't find a special value, so set BG instead
 			// arrow icon already set separately
 			//APP_LOG(APP_LOG_LEVEL_DEBUG, "LOAD BG, SET TO BG: %s ", last_bg);
       #ifdef PBL_COLOR
- 	      GColor inTarget_color = COLOR_FALLBACK(GColorDukeBlue, GColorBlack) ;
+ 	     GColor inTarget_color = COLOR_FALLBACK(GColorDukeBlue, GColorBlack) ;
        if ( strncmp(last_bg, " ",1) != 0 ) {
-          if ( strcmp(last_bg, low_bg) < 0 ) {
+          if ( myAtoi(last_bg) <  myAtoi(low_bg) ) {
             inTarget_color = GColorRed ;
-          } else if ( strcmp(last_bg, high_bg) > 0 ) {
+          } else if ( myAtoi(last_bg) > myAtoi(high_bg) ) {
             inTarget_color = GColorChromeYellow ;
-          } else {
-            inTarget_color = GColorDukeBlue ;
           }
         }
        text_layer_set_background_color(lower_layer, inTarget_color);
@@ -1169,7 +1162,6 @@ static void load_bg() {
       } else {
 		    text_layer_set_text(bg_layer, last_bg);
       }
- 		APP_LOG(APP_LOG_LEVEL_DEBUG, "6 LAST BG: %s", last_bg);
 		} // end bg checks (if special_value_bitmap)
 	} // else if current bg <= 0
 			
@@ -1772,7 +1764,9 @@ static void setColors() {
     bridge_battery_fill_color = COLOR_FALLBACK(GColorCyan, GColorWhite) ;
     bridge_battery_low_color = COLOR_FALLBACK(GColorRed, GColorWhite) ;
     bridge_battery_border_color = GColorWhite ;
-    dateColor = GColorWhite ;
+    if ( displayFormat == 3 ) {
+      dateColor = GColorWhite ;
+    }
   } else if (displayFormat == 2 ) {
     watch_battery_fill_color  = COLOR_FALLBACK(GColorCyan, GColorBlack) ;
     watch_battery_low_color  = COLOR_FALLBACK(GColorRed, GColorBlack) ;
@@ -1810,12 +1804,12 @@ void setDisplay() {
         grectDeltaLayer = GRect(0 , centerPoint.y - 89 , third_w , 25);
         grectTimeAgoLayer = GRect(0, centerPoint.y - 70 , third_w , 25);
         grectBGLayer = GRect(third_w , centerPoint.y - 89 ,third_w * 2 , 50);
-        grectTimeLayer = GRect(centerPoint.x - 33 , centerPoint.y + 35 , centerPoint.x + 45 , 50);
+        grectTimeLayer = GRect(0 , centerPoint.y + 35 , grectWindow.size.w , 50); 
         grectDateLayer = GRect(0 , centerPoint.y + 15 , grectWindow.size.w , 30);
-        grectWatchBatteryLayer = GRect(centerPoint.x - 72, centerPoint.y + 56 , 40, 20);
-        grectBridgeBatteryLayer = GRect(centerPoint.x - 72 , centerPoint.y + 40 , 40, 20) ;
-        alignTime = GTextAlignmentLeft;
+        grectWatchBatteryLayer = GRect(0, centerPoint.y + 60 , third_w , 25);
+        grectBridgeBatteryLayer = GRect(0 , centerPoint.y + 40 , third_w , 25) ;
         alignIcon = GAlignTopLeft ;
+        alignTime = GTextAlignmentRight;
         break;
       case 2:
         grectUpperLayer = GRect(0,0,grectWindow.size.w, centerPoint.y - 42 );
